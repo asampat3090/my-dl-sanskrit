@@ -1,0 +1,12 @@
+﻿1. Classes -> Substitute indic.php
+
+2. Includes -> substitute ind_hi_1_001.volt.php 
+add ind_hi_2.002.volt.php
+
+3. Replace the folder ttfontdata
+
+4. ttfonts -> add font ind_hi_2_001.ttf
+
+5. In main folder MPDF56 -> replace config.php, config_cp.php and config_fonts.php
+
+

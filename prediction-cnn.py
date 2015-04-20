@@ -13,7 +13,7 @@ from   theano.tensor.nnet   import conv
 nDims = 10
 nPredictors = 3
 nHidden = 50
-nEpochs = 20
+nEpochs = 2
 batch_sz = 20
 rate = .01 * batch_sz
 lex_update_speed = 2
@@ -27,7 +27,13 @@ sqrndims = nDims ** 2
 
 with open(sys.argv[1], 'rb') as f:
     corpus = pickle.load(f)
-corpus = np.array(corpus, dtype='int32')
+
+corpus_labels = corpus
+corpus = np.array(corpus_labels, dtype='int32')
+
+# Get aksharas
+with open(sys.argv[2],'rb') as f1: 
+    aksharas = pickle.load(f1)
 
 nCorpus = len(corpus)
 nWords = corpus.max() + 1
@@ -70,8 +76,12 @@ def get_wts(sizeW, sizeB, wname='W', bname='b'):
 
 ##############################  The Neural Net ################################
 
+
+#print_lex_info(lexicon)
+
 lexicon = share(lexicon)
 corpus = share(corpus, 'int32')
+
 
 ######################## Input Layer
 
@@ -171,30 +181,59 @@ for epoch in range(nEpochs):
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d import proj3d
 from sklearn.cluster import KMeans
 from sklearn import datasets
+import pylab
 
-pca = PCA(n_components=3)
+DIMENSIONS = 2
+CLUSTERS = 3
+
+print(type(lexicon.get_value()))
+
+pca = PCA(n_components=DIMENSIONS)
 pcs = pca.fit_transform(lexicon.get_value())
 print('PC shape:', pcs.shape)
-
-np.random.seed(5)
-
-estimator = KMeans(n_clusters=3)
-fig = plt.figure(1, figsize=(4, 3))
-plt.clf()
-ax = Axes3D(fig, rect=[0, 0, .95, 1], elev=48, azim=134)
-plt.cla()
+estimator = KMeans(n_clusters=CLUSTERS)
 estimator.fit(pcs)
 labels = estimator.labels_
 
-ax.scatter(pcs[:,0], pcs[:,1], pcs[:,2], c=labels.astype(np.float), s=100)
+if DIMENSIONS>=3:
+    np.random.seed(5)
+    fig = plt.figure(1, figsize=(4, 3))
+    plt.clf()
+    ax = Axes3D(fig, rect=[0, 0, .95, 1], elev=48, azim=134)
+    plt.cla()
 
-ax.w_xaxis.set_ticklabels([])
-ax.w_yaxis.set_ticklabels([])
-ax.w_zaxis.set_ticklabels([])
-ax.set_xlabel('1st PC')
-ax.set_ylabel('2nd PC')
-ax.set_zlabel('3rd PC')
+    ax.scatter(pcs[:,0], pcs[:,1], pcs[:,2], c=labels.astype(np.float), s=100)
+
+    ax.w_xaxis.set_ticklabels([])
+    ax.w_yaxis.set_ticklabels([])
+    ax.w_zaxis.set_ticklabels([])
+    ax.set_xlabel('1st PC')
+    ax.set_ylabel('2nd PC')
+    ax.set_zlabel('3rd PC')
+
+    for i, txt in enumerate([aksharas[j] for j in range(0,len(aksharas),50)]):
+        x2, y2, _ = proj3d.proj_transform(pcs[i,0],pcs[i,1],pcs[i,2], ax.get_proj())    
+        label = pylab.annotate(txt,
+            xycoords='data', 
+            xy = (x2, y2), xytext = (60, 20),
+            textcoords = 'offset points', ha = 'right', va = 'bottom',
+            bbox = dict(boxstyle = 'round,pad=0.5', fc = 'yellow', alpha = 0.5),
+            arrowprops = dict(arrowstyle = '->', connectionstyle = 'arc3,rad=0'))
+else:
+    x=pcs[:,0]
+    y=pcs[:,1]
+    plt.scatter(x, y, c=[1, 1, 1], s=200)#c=labels.astype(np.float), s=1000)
+    for label, i, j in zip(range(nWords), x, y):
+        plt.annotate(
+            aksharas[label],
+            xy=(i, j),
+            xytext = (0, 0),
+            textcoords = 'offset points', ha = 'right', va = 'bottom',
+            #bbox = dict(boxstyle = 'round,pad=0.5', fc = 'yellow', alpha = 0.5),
+            #arrowprops = dict(arrowstyle = '->', connectionstyle = 'arc3,rad=0')
+        )
 
 plt.show()
